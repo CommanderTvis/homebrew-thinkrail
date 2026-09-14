@@ -4,7 +4,7 @@ Homebrew tap for the [CommanderTvis fork of ThinkRail](https://github.com/Comman
 nightly builds of the `claude-code-integration-plugin-api` branch for Apple Silicon.
 
 ```sh
-brew trust --tap commandertvis/thinkrail   # Homebrew 7+ refuses untrusted third-party taps
+brew trust --tap commandertvis/thinkrail   # Homebrew 7+ refuses untrusted taps
 brew tap commandertvis/thinkrail
 brew install thinkrail                  # the CLI host
 brew install --cask thinkrail-desktop   # the Electrobun desktop app (ThinkRail-canary.app)
@@ -23,4 +23,4 @@ checks out that commit, runs the fork's own `build-binary` composite action on a
 polls, rewrites `Formula/thinkrail.rb` and `Casks/thinkrail-desktop.rb`, installs both from the tap on the
 runner as a check, and pushes.
 
-The workflow is the only writer of the formula, the cask, and `nightly.sha`. The tap is never rebased.
+The workflow is the only writer of the formula, the cask, and `nightly.sha`.
