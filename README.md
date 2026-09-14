@@ -10,6 +10,9 @@ brew install thinkrail                  # the CLI host
 brew install --cask thinkrail-desktop   # the Electrobun desktop app (ThinkRail-canary.app)
 ```
 
+Nightlies are unsigned and not notarized. The cask strips the quarantine flag after install, which is
+what keeps Gatekeeper from reporting the app as damaged.
+
 ## How it moves
 
 `.github/workflows/nightly.yml` runs daily at 03:00 UTC (or on demand). It compares the fork branch head

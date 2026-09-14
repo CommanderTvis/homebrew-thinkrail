@@ -11,4 +11,8 @@ cask "thinkrail-desktop" do
   depends_on arch: :arm64
 
   app "ThinkRail-canary.app"
+
+  postflight_steps do
+    run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{appdir}}/ThinkRail-canary.app"]
+  end
 end

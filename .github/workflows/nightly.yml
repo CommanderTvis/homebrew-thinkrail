@@ -137,6 +137,10 @@ jobs:
             depends_on arch: :arm64
 
             app "ThinkRail-canary.app"
+
+            postflight_steps do
+              run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{appdir}}/ThinkRail-canary.app"]
+            end
           end
           EOF
           echo "$SOURCE_SHA" > tap/nightly.sha
