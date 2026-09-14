@@ -1,0 +1,165 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+concurrency: nightly
+
+permissions:
+  contents: write
+
+env:
+  SOURCE_REPO: CommanderTvis/thinkrail
+  SOURCE_BRANCH: claude-code-integration-plugin-api
+  TAP_REPO: ${{ github.repository }}
+
+jobs:
+  check:
+    name: Compare source head with the last nightly
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.compare.outputs.sha }}
+      changed: ${{ steps.compare.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: compare
+        run: |
+          set -eu
+          sha=$(git ls-remote "https://github.com/$SOURCE_REPO.git" "refs/heads/$SOURCE_BRANCH" | cut -f1)
+          [ -n "$sha" ] || { echo "::error::could not resolve $SOURCE_REPO@$SOURCE_BRANCH"; exit 1; }
+          last=$(cat nightly.sha 2>/dev/null || true)
+          echo "source head $sha, last nightly ${last:-none}"
+          {
+            echo "sha=$sha"
+            echo "changed=$([ "$sha" != "$last" ] && echo true || echo false)"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build, release, and update the tap
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    runs-on: macos-15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_SHA: ${{ needs.check.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: ${{ env.SOURCE_REPO }}
+          ref: ${{ needs.check.outputs.sha }}
+      - uses: actions/checkout@v5
+        with:
+          path: tap
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+
+      - id: version
+        run: echo "version=0.0.0-nightly.$(date -u +%Y%m%d%H%M)" >> "$GITHUB_OUTPUT"
+
+      - name: Point the desktop updater at this tap's feed
+        run: |
+          set -eu
+          upstream='https://github.com/JetBrains/thinkrail/releases/download/desktop-updates'
+          fork="https://github.com/$TAP_REPO/releases/download/desktop-updates"
+          sed -i '' "s#$upstream#$fork#" apps/desktop/electrobun.config.ts
+          grep -q "$fork" apps/desktop/electrobun.config.ts
+
+      - id: build
+        uses: ./.github/actions/build-binary
+        with:
+          version: ${{ steps.version.outputs.version }}
+          channel: nightly
+          target: bun-darwin-arm64
+
+      - name: Publish the release and the update feed
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          CLI: ${{ steps.build.outputs.artifact-path }}
+          DMG: ${{ steps.build.outputs.desktop-artifact-path }}
+          MANIFEST: ${{ steps.build.outputs.desktop-update-manifest-path }}
+          ARCHIVE: ${{ steps.build.outputs.desktop-update-archive-path }}
+        run: |
+          set -eu
+          gh release create "v$VERSION" --repo "$TAP_REPO" --prerelease \
+            --title "$VERSION" --notes "Built from $SOURCE_REPO@$SOURCE_SHA" "$CLI" "$DMG"
+          gh release view desktop-updates --repo "$TAP_REPO" >/dev/null 2>&1 ||
+            gh release create desktop-updates --repo "$TAP_REPO" --prerelease \
+              --title "Desktop update feed" --notes "Electrobun update feed; assets are overwritten by every nightly."
+          gh release upload desktop-updates --repo "$TAP_REPO" --clobber "$MANIFEST" "$ARCHIVE"
+
+      - name: Write the formula and the cask
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          CLI: ${{ steps.build.outputs.artifact-path }}
+          DMG: ${{ steps.build.outputs.desktop-artifact-path }}
+        run: |
+          set -eu
+          cli_sha=$(shasum -a 256 "$CLI" | cut -d' ' -f1)
+          dmg_sha=$(shasum -a 256 "$DMG" | cut -d' ' -f1)
+          base="https://github.com/$TAP_REPO/releases/download/v$VERSION"
+          mkdir -p tap/Formula tap/Casks
+          cat > tap/Formula/thinkrail.rb <<EOF
+          class Thinkrail < Formula
+            desc "ThinkRail CLI host, CommanderTvis fork nightly"
+            homepage "https://github.com/$SOURCE_REPO"
+            version "$VERSION"
+            url "$base/thinkrail-darwin-arm64"
+            sha256 "$cli_sha"
+            license "Apache-2.0"
+
+            depends_on :macos
+            depends_on arch: :arm64
+
+            def install
+              bin.install "thinkrail-darwin-arm64" => "thinkrail"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/thinkrail --version")
+            end
+          end
+          EOF
+          cat > tap/Casks/thinkrail-desktop.rb <<EOF
+          cask "thinkrail-desktop" do
+            version "$VERSION"
+            sha256 "$dmg_sha"
+
+            url "$base/thinkrail-desktop-darwin-arm64.dmg"
+            name "ThinkRail"
+            desc "ThinkRail desktop app, CommanderTvis fork nightly"
+            homepage "https://github.com/$SOURCE_REPO"
+
+            auto_updates true
+            depends_on arch: :arm64
+
+            app "ThinkRail-canary.app"
+          end
+          EOF
+          echo "$SOURCE_SHA" > tap/nightly.sha
+
+      - name: Install both from the tap
+        working-directory: tap
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -eu
+          git add -A
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -q -m "Nightly $VERSION from $SOURCE_REPO@${SOURCE_SHA:0:7}"
+          brew tap commandertvis/thinkrail "$PWD"
+          brew install --formula commandertvis/thinkrail/thinkrail
+          thinkrail --version | grep -F "$VERSION"
+          brew install --cask commandertvis/thinkrail/thinkrail-desktop
+          test -d /Applications/ThinkRail-canary.app
+
+      - name: Push the tap
+        working-directory: tap
+        run: git push
+
+      - name: Remove the release the tap never adopted
+        if: failure() && steps.version.outputs.version != ''
+        run: gh release delete "v${{ steps.version.outputs.version }}" --repo "$TAP_REPO" --cleanup-tag --yes || true
