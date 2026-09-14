@@ -150,6 +150,7 @@ jobs:
           git add -A
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
             commit -q -m "Nightly $VERSION from $SOURCE_REPO@${SOURCE_SHA:0:7}"
+          brew trust --tap commandertvis/thinkrail 2>/dev/null || true
           brew tap commandertvis/thinkrail "$PWD"
           brew install --formula commandertvis/thinkrail/thinkrail
           thinkrail --version | grep -F "$VERSION"

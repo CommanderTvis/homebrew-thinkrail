@@ -4,6 +4,7 @@ Homebrew tap for the [CommanderTvis fork of ThinkRail](https://github.com/Comman
 nightly builds of the `claude-code-integration-plugin-api` branch for Apple Silicon.
 
 ```sh
+brew trust --tap commandertvis/thinkrail   # Homebrew 7+ refuses untrusted third-party taps
 brew tap commandertvis/thinkrail
 brew install thinkrail                  # the CLI host
 brew install --cask thinkrail-desktop   # the Electrobun desktop app (ThinkRail-canary.app)
