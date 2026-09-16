@@ -8,7 +8,7 @@ on:
 concurrency: nightly
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   SOURCE_REPO: CommanderTvis/thinkrail
@@ -19,11 +19,13 @@ jobs:
   check:
     name: Compare source head with the last nightly
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       sha: ${{ steps.compare.outputs.sha }}
       changed: ${{ steps.compare.outputs.changed }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: compare
         run: |
           set -eu
@@ -41,18 +43,20 @@ jobs:
     needs: check
     if: needs.check.outputs.changed == 'true'
     runs-on: macos-15
+    permissions:
+      contents: write
     env:
-      GH_TOKEN: ${{ github.token }}
       SOURCE_SHA: ${{ needs.check.outputs.sha }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ env.SOURCE_REPO }}
           ref: ${{ needs.check.outputs.sha }}
-      - uses: actions/checkout@v5
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: tap
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
@@ -77,6 +81,7 @@ jobs:
 
       - name: Publish the release and the update feed
         env:
+          GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
           CLI: ${{ steps.build.outputs.artifact-path }}
           DMG: ${{ steps.build.outputs.desktop-artifact-path }}
@@ -163,8 +168,12 @@ jobs:
 
       - name: Push the tap
         working-directory: tap
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: git push
 
       - name: Remove the release the tap never adopted
         if: failure() && steps.version.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: gh release delete "v${{ steps.version.outputs.version }}" --repo "$TAP_REPO" --cleanup-tag --yes || true

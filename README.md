@@ -10,8 +10,14 @@ brew install thinkrail                  # the CLI host
 brew install --cask thinkrail-desktop   # the Electrobun desktop app (ThinkRail-canary.app)
 ```
 
-Nightlies are unsigned and not notarized. The cask strips the quarantine flag after install, which is
-what keeps Gatekeeper from reporting the app as damaged.
+## Security and Unsigned Binaries
+
+Nightly builds published by this tap are unsigned and not notarized:
+
+- No Apple Developer ID signature or notarization ticket is attached to the distributions.
+- macOS Gatekeeper blocks unnotarized applications downloaded from the internet by default. To make `brew install --cask thinkrail-desktop` functional without requiring manual terminal commands after each install or upgrade, the cask runs a postflight step that clears the quarantine flag.
+- Package integrity for Homebrew downloads is pinned by SHA256 checksums in `Formula/thinkrail.rb` and `Casks/thinkrail-desktop.rb`.
+- The desktop app uses Electrobun's built-in auto-updater (`auto_updates true`) polling this tap's `desktop-updates` release feed.
 
 ## How it moves
 
