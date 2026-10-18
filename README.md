@@ -8,6 +8,7 @@ brew trust --tap commandertvis/thinkrail   # Homebrew 7+ refuses untrusted taps
 brew tap commandertvis/thinkrail
 brew install thinkrail                  # the CLI host
 brew install --cask thinkrail-desktop   # the Electrobun desktop app (ThinkRail-canary.app)
+brew install --cask sharprail           # SharpRail desktop app, latest nightly from CommanderTvis/sharprail
 ```
 
 ## Security and Unsigned Binaries
@@ -29,4 +30,8 @@ checks out that commit, runs the fork's own `build-binary` composite action on a
 polls, rewrites `Formula/thinkrail.rb` and `Casks/thinkrail-desktop.rb`, installs both from the tap on the
 runner as a check, and pushes.
 
-The workflow is the only writer of the formula, the cask, and `nightly.sha`.
+The workflow is the only writer of the formula, the `thinkrail-desktop` cask, and `nightly.sha`.
+
+The `sharprail` cask is hand-written: it points at the rolling `nightly` release of
+[CommanderTvis/sharprail](https://github.com/CommanderTvis/sharprail), which that repo rebuilds itself, so it is
+`version :latest` with no checksum pin and `brew upgrade --cask --greedy sharprail` re-downloads it.
