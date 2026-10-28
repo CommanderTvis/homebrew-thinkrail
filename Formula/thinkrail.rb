@@ -1,9 +1,9 @@
 class Thinkrail < Formula
   desc "ThinkRail CLI host, CommanderTvis fork nightly"
   homepage "https://github.com/CommanderTvis/thinkrail"
-  version "0.0.0-nightly.202610190831"
-  url "https://github.com/CommanderTvis/homebrew-thinkrail/releases/download/v0.0.0-nightly.202610190831/thinkrail-darwin-arm64"
-  sha256 "ec09375c3bb53587199c22a866f3bb68f460eb6e54b04e7ee2e5ac3362130e3a"
+  version "0.0.0-nightly.202610280921"
+  url "https://github.com/CommanderTvis/homebrew-thinkrail/releases/download/v0.0.0-nightly.202610280921/thinkrail-darwin-arm64"
+  sha256 "3a239c80d790de9362de474c37c15001f1dd95fb778d51e93adf27fd4897801c"
   license "Apache-2.0"
 
   depends_on :macos
