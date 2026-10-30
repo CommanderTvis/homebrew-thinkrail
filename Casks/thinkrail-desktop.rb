@@ -1,8 +1,8 @@
 cask "thinkrail-desktop" do
-  version "0.0.0-nightly.202610290925"
-  sha256 "5d4b46e193f348375236623c0e3cc16a91532b8c8b28ca79e2aee71c50cd29b4"
+  version "0.0.0-nightly.202610300939"
+  sha256 "840fed14ff43842aa9acea92e2cf58c5381c231acb70bef34bc01afc00f726ca"
 
-  url "https://github.com/CommanderTvis/homebrew-thinkrail/releases/download/v0.0.0-nightly.202610290925/thinkrail-desktop-darwin-arm64.dmg"
+  url "https://github.com/CommanderTvis/homebrew-thinkrail/releases/download/v0.0.0-nightly.202610300939/thinkrail-desktop-darwin-arm64.dmg"
   name "ThinkRail"
   desc "ThinkRail desktop app, CommanderTvis fork nightly"
   homepage "https://github.com/CommanderTvis/thinkrail"
